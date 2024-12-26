@@ -1,0 +1,8 @@
+C:\Users\38161\Desktop\mreze\PRMuIS\Server\bin\Debug\Server.exe.config
+C:\Users\38161\Desktop\mreze\PRMuIS\Server\bin\Debug\Server.exe
+C:\Users\38161\Desktop\mreze\PRMuIS\Server\bin\Debug\Server.pdb
+C:\Users\38161\Desktop\mreze\PRMuIS\Server\obj\Debug\Server.csproj.AssemblyReference.cache
+C:\Users\38161\Desktop\mreze\PRMuIS\Server\obj\Debug\Server.csproj.SuggestedBindingRedirects.cache
+C:\Users\38161\Desktop\mreze\PRMuIS\Server\obj\Debug\Server.csproj.CoreCompileInputs.cache
+C:\Users\38161\Desktop\mreze\PRMuIS\Server\obj\Debug\Server.exe
+C:\Users\38161\Desktop\mreze\PRMuIS\Server\obj\Debug\Server.pdb

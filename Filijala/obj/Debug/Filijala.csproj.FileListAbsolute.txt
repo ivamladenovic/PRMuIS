@@ -1,0 +1,8 @@
+C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\bin\Debug\Filijala.exe.config
+C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\bin\Debug\Filijala.exe
+C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\bin\Debug\Filijala.pdb
+C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\obj\Debug\Filijala.csproj.AssemblyReference.cache
+C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\obj\Debug\Filijala.csproj.SuggestedBindingRedirects.cache
+C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\obj\Debug\Filijala.csproj.CoreCompileInputs.cache
+C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\obj\Debug\Filijala.exe
+C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\obj\Debug\Filijala.pdb

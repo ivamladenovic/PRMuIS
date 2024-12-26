@@ -1,0 +1,8 @@
+C:\Users\38161\Desktop\mreze\PRMuIS\Klijent\bin\Debug\Klijent.exe.config
+C:\Users\38161\Desktop\mreze\PRMuIS\Klijent\bin\Debug\Klijent.exe
+C:\Users\38161\Desktop\mreze\PRMuIS\Klijent\bin\Debug\Klijent.pdb
+C:\Users\38161\Desktop\mreze\PRMuIS\Klijent\obj\Debug\Klijent.csproj.AssemblyReference.cache
+C:\Users\38161\Desktop\mreze\PRMuIS\Klijent\obj\Debug\Klijent.csproj.SuggestedBindingRedirects.cache
+C:\Users\38161\Desktop\mreze\PRMuIS\Klijent\obj\Debug\Klijent.csproj.CoreCompileInputs.cache
+C:\Users\38161\Desktop\mreze\PRMuIS\Klijent\obj\Debug\Klijent.exe
+C:\Users\38161\Desktop\mreze\PRMuIS\Klijent\obj\Debug\Klijent.pdb
