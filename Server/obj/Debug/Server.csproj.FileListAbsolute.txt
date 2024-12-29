@@ -6,3 +6,6 @@ C:\Users\38161\Desktop\mreze\PRMuIS\Server\obj\Debug\Server.csproj.SuggestedBind
 C:\Users\38161\Desktop\mreze\PRMuIS\Server\obj\Debug\Server.csproj.CoreCompileInputs.cache
 C:\Users\38161\Desktop\mreze\PRMuIS\Server\obj\Debug\Server.exe
 C:\Users\38161\Desktop\mreze\PRMuIS\Server\obj\Debug\Server.pdb
+C:\Users\38161\Desktop\mreze\PRMuIS\Server\bin\Debug\Common.dll
+C:\Users\38161\Desktop\mreze\PRMuIS\Server\bin\Debug\Common.pdb
+C:\Users\38161\Desktop\mreze\PRMuIS\Server\obj\Debug\Server.csproj.CopyComplete

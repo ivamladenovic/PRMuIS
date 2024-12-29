@@ -6,3 +6,6 @@ C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\obj\Debug\Filijala.csproj.Suggested
 C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\obj\Debug\Filijala.csproj.CoreCompileInputs.cache
 C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\obj\Debug\Filijala.exe
 C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\obj\Debug\Filijala.pdb
+C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\bin\Debug\Common.dll
+C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\bin\Debug\Common.pdb
+C:\Users\38161\Desktop\mreze\PRMuIS\Filijala\obj\Debug\Filijala.csproj.CopyComplete

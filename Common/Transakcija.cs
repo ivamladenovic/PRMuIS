@@ -8,12 +8,11 @@ namespace Common
 {
     public class Transakcija
     {
-        public string TransakcioniId { get; set; }  // ID transakcije
-        public string TipTransakcije { get; set; } // Tip transakcije (Uplata, Isplata, Transfer)
-        public double Iznos { get; set; }          // Iznos transakcije
-        public DateTime Datum { get; set; }        // Datum kada je transakcija obavljena
+        public string TransakcioniId { get; set; }  
+        public string TipTransakcije { get; set; } 
+        public double Iznos { get; set; }          
+        public DateTime Datum { get; set; }        
 
-        // Konstruktor klase
         public Transakcija(string transakcioniId, string tipTransakcije, double iznos, DateTime datum)
         {
             TransakcioniId = transakcioniId;
@@ -22,7 +21,6 @@ namespace Common
             Datum = datum;
         }
 
-        // Metoda za ispis podataka o transakciji
         public override string ToString()
         {
             return $"Transakcija ID: {TransakcioniId}, Tip: {TipTransakcije}, Iznos: {Iznos}, Datum: {Datum}";

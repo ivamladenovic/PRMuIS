@@ -8,24 +8,24 @@ namespace Common
 {
     public class Korisnik
     {
-        public string IdKorisnika { get; set; }   // ID korisnika
-        public string Ime { get; set; }       // Ime korisnika
-        public string Prezime { get; set; }   // Prezime korisnika
-        public double StanjeNaRačunu { get; set; } // Stanje na računu
+        public string IdKorisnika { get; set; }  
+        public string Ime { get; set; }       
+        public string Prezime { get; set; }   
+        public double StanjeNaRačunu { get; set; } 
+        public string Lozinka { get; set; }  
 
-        // Konstruktor klase
-        public Korisnik(string Id, string ime, string prezime, double stanjeNaRačunu)
+        public Korisnik(string Id, string ime, string prezime, double stanjeNaRačunu, string lozinka)
         {
             IdKorisnika = Id;
             Ime = ime;
             Prezime = prezime;
             StanjeNaRačunu = stanjeNaRačunu;
+            Lozinka = lozinka;
         }
 
-        // Metoda za ispis podataka o korisniku
         public override string ToString()
         {
-            return $"{Ime} {Prezime} (ID: {IdKorisnika}) - Stanje na računu: {StanjeNaRačunu}";
+            return $"{Ime} {Prezime} (ID: {IdKorisnika}) - Stanje na računu: {StanjeNaRačunu} - lozinka {Lozinka}";
         }
     }
 }

@@ -11,48 +11,31 @@ namespace Server
         {
             try
             {
-                string hostName = Dns.GetHostName();
-                IPAddress[] addresses = Dns.GetHostAddresses(hostName);
-                IPAddress selectedAddress = null;
+                UdpClient udpServer = new UdpClient(8888); 
+                Console.WriteLine("Centralni server pokrenut na portu 8888 (UDP).");
 
-                foreach (var address in addresses)
+                while (true)
                 {
-                    if (address.AddressFamily == AddressFamily.InterNetwork)
+                    IPEndPoint remoteEndPoint = null;
+                    byte[] receivedBytes = udpServer.Receive(ref remoteEndPoint);
+                    string request = Encoding.UTF8.GetString(receivedBytes);
+
+                    Console.WriteLine($"Primljen zahtev od filijale: {request}");
+
+                    if (request.StartsWith("INIT"))
                     {
-                        selectedAddress = address;
-                        break;
+                        string maxBudzet = "1000000"; 
+                        string response = maxBudzet; 
+                        byte[] responseBytes = Encoding.UTF8.GetBytes(response);
+                        udpServer.Send(responseBytes, responseBytes.Length, remoteEndPoint);
+                        Console.WriteLine($"Odgovor poslat filijali: {response}");
                     }
                 }
-
-                if (selectedAddress == null)
-                {
-                    Console.WriteLine("IPv4 adresa nije pronađena.");
-                    return;
-                }
-
-                // Kreiranje UDP soketa za komunikaciju sa filijalama
-                Socket udpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                IPEndPoint serverEndPoint = new IPEndPoint(selectedAddress, 55555);
-
-                // Inicijalizacija filijale sa početnim resursima
-                string initMessage = "Max budget: 100000, Max TCP connections: 5";
-                byte[] buffer = Encoding.UTF8.GetBytes(initMessage);
-
-                // Slanje inicijalizacije filijalama
-                udpSocket.SendTo(buffer, serverEndPoint);
-                Console.WriteLine("Server poslao inicijalizaciju filijalama.");
-
-                // Zatvaranje UDP soketa
-                udpSocket.Close();
             }
-            catch (SocketException ex)
+            catch (Exception ex)
             {
-                Console.WriteLine($"Socket greška: {ex.Message}");
+                Console.WriteLine($"Greška na serveru: {ex.Message}");
             }
-
-            // Održavanje servera otvorenim dok korisnik ne pritisne enter
-            Console.WriteLine("Server je završio sa radom. Pritisnite Enter da biste zatvorili.");
-            Console.ReadLine();
         }
     }
 }

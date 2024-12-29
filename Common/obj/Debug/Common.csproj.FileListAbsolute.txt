@@ -1,0 +1,6 @@
+C:\Users\38161\Desktop\mreze\PRMuIS\Common\bin\Debug\Common.dll
+C:\Users\38161\Desktop\mreze\PRMuIS\Common\bin\Debug\Common.pdb
+C:\Users\38161\Desktop\mreze\PRMuIS\Common\obj\Debug\Common.csproj.AssemblyReference.cache
+C:\Users\38161\Desktop\mreze\PRMuIS\Common\obj\Debug\Common.csproj.CoreCompileInputs.cache
+C:\Users\38161\Desktop\mreze\PRMuIS\Common\obj\Debug\Common.dll
+C:\Users\38161\Desktop\mreze\PRMuIS\Common\obj\Debug\Common.pdb
