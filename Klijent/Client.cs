@@ -11,18 +11,19 @@ namespace Klijent
             try
             {
                 string serverAddress = "127.0.0.1";
-                int port = 8889; 
+                int port = 8889;
 
                 while (true)
                 {
                     Console.WriteLine("Izaberite opciju:");
                     Console.WriteLine("1. Registracija");
-                    Console.WriteLine("2. Pregled stanja");
-                    Console.WriteLine("3. Transakcija");
-                    Console.WriteLine("4. Izlaz");
+                    Console.WriteLine("2. Prijava");
+                    Console.WriteLine("3. Pregled stanja");
+                    Console.WriteLine("4. Transakcija");
+                    Console.WriteLine("5. Izlaz");
                     string izbor = Console.ReadLine();
 
-                    if (izbor == "4") break;
+                    if (izbor == "5") break;
 
                     TcpClient tcpClient = new TcpClient(serverAddress, port);
                     NetworkStream stream = tcpClient.GetStream();
@@ -31,37 +32,70 @@ namespace Klijent
                     switch (izbor)
                     {
                         case "1":
+                            // Registracija
                             Console.Write("Unesite ime: ");
                             string ime = Console.ReadLine();
                             Console.Write("Unesite prezime: ");
                             string prezime = Console.ReadLine();
-                            Console.Write("Unesite lozinku: ");
-                            string lozinka = Console.ReadLine();
-                            Console.Write("Unesite početno stanje na računu: ");
-                            double stanje;
-                            while (!double.TryParse(Console.ReadLine(), out stanje) || stanje < 0)
+
+                            string lozinka;
+                            do
                             {
-                                Console.Write("Pogrešan unos! Unesite validan broj za stanje: ");
+                                Console.Write("Unesite lozinku (min 6 karaktera): ");
+                                lozinka = Console.ReadLine();
+                                if (lozinka.Length < 6)
+                                {
+                                    Console.WriteLine("Lozinka mora imati najmanje 6 karaktera!");
+                                }
+                            }
+                            while (lozinka.Length < 6);
+
+                            Console.Write("Unesite limit za isplatu sa računa: ");
+                            double limitZaIsplatu;
+                            while (!double.TryParse(Console.ReadLine(), out limitZaIsplatu) || limitZaIsplatu <= 0)
+                            {
+                                Console.Write("Pogrešan unos! Unesite validan broj za limit: ");
                             }
 
-                            zahtev = $"REGISTRACIJA|{ime}|{prezime}|{lozinka}|{stanje}";
+                            zahtev = $"REGISTRACIJA|{ime}|{prezime}|{lozinka}|{limitZaIsplatu}";
                             break;
 
                         case "2":
+                            // Prijava
+                            Console.Write("Unesite ime: ");
+                            string imeKorisnika = Console.ReadLine();
                             Console.Write("Unesite lozinku: ");
                             string lozinkaKorisnika = Console.ReadLine();
 
-                            zahtev = $"STANJE|{lozinkaKorisnika}";  
+                            zahtev = $"PRIJAVA|{imeKorisnika}|{lozinkaKorisnika}";
                             break;
 
                         case "3":
+                            // Pregled stanja
+                            Console.Write("Unesite lozinku: ");
+                            string lozinkaStanja = Console.ReadLine();
+
+                            zahtev = $"STANJE|{lozinkaStanja}";
+                            break;
+
+                        case "4":
+                            // Transakcija
+                            Console.WriteLine("Izaberite tip transakcije:");
+                            Console.WriteLine("1. Uplata");
+                            Console.WriteLine("2. Isplata");
+                            string tipTransakcije = Console.ReadLine() == "1" ? "UPLATA" : "ISPLATA";
+
                             Console.Write("Unesite iznos za transakciju: ");
                             double iznos;
                             while (!double.TryParse(Console.ReadLine(), out iznos) || iznos <= 0)
                             {
                                 Console.Write("Pogrešan unos! Unesite validan iznos: ");
                             }
-                            zahtev = $"TRANSAKCIJA|{iznos}";
+
+                            Console.Write("Unesite lozinku: ");
+                            string lozinkaTransakcije = Console.ReadLine();
+
+                            zahtev = $"TRANSAKCIJA|{tipTransakcije}|{iznos}|{lozinkaTransakcije}";
                             break;
 
                         default:
@@ -75,8 +109,9 @@ namespace Klijent
                     byte[] responseBuffer = new byte[1024];
                     int bytesRead = stream.Read(responseBuffer, 0, responseBuffer.Length);
                     string responseMessage = Encoding.UTF8.GetString(responseBuffer, 0, bytesRead);
-                    Console.WriteLine($"Odgovor od filijale: {responseMessage}");
+                    Console.WriteLine($"{responseMessage}");
 
+                    
                     tcpClient.Close();
                 }
             }
