@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Common;
@@ -17,7 +18,6 @@ namespace Klijent
                 int port;
                 while (!int.TryParse(Console.ReadLine(), out port)) ;
 
-                // Definisanje ključa za enkripciju (u praksi bi mogao da se primi od filijale/ servera)
                 string key = "tajna123";
 
                 while (true)
@@ -34,8 +34,10 @@ namespace Klijent
 
                     if (izbor == "7") break;
 
-                    TcpClient tcpClient = new TcpClient(serverAddress, port);
-                    NetworkStream stream = tcpClient.GetStream();
+                    // Kreiranje TCP socket-a
+                    Socket clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Parse(serverAddress), port);
+                    clientSocket.Connect(serverEndPoint);
 
                     string zahtev = string.Empty;
                     switch (izbor)
@@ -73,14 +75,12 @@ namespace Klijent
                             string imeKorisnika = Console.ReadLine();
                             Console.Write("Unesite lozinku: ");
                             string lozinkaKorisnika = Console.ReadLine();
-
                             zahtev = $"PRIJAVA|{imeKorisnika}|{lozinkaKorisnika}";
                             break;
 
                         case "3":
                             Console.Write("Unesite lozinku: ");
                             string lozinkaStanja = Console.ReadLine();
-
                             zahtev = $"STANJE|{lozinkaStanja}";
                             break;
 
@@ -99,24 +99,20 @@ namespace Klijent
 
                             Console.Write("Unesite lozinku: ");
                             string lozinkaTransakcije = Console.ReadLine();
-
                             zahtev = $"TRANSAKCIJA|{tipTransakcije}|{iznos}|{lozinkaTransakcije}";
                             break;
 
                         case "5":
                             Console.Write("Unesite lozinku pošiljaoca: ");
                             string lozinkaPosiljaoca = Console.ReadLine();
-
                             Console.Write("Unesite lozinku primaoca: ");
                             string lozinkaPrimaoca = Console.ReadLine();
-
                             Console.Write("Unesite iznos za transfer: ");
                             double iznosTransfer;
                             while (!double.TryParse(Console.ReadLine(), out iznosTransfer) || iznosTransfer <= 0)
                             {
                                 Console.Write("Pogrešan unos! Unesite validan iznos: ");
                             }
-
                             zahtev = $"TRANSFER|{lozinkaPosiljaoca}|{lozinkaPrimaoca}|{iznosTransfer}";
                             break;
 
@@ -128,38 +124,38 @@ namespace Klijent
 
                         default:
                             Console.WriteLine("Nepoznata opcija.");
+                            clientSocket.Close();
                             continue;
                     }
 
-                    // Enkripcija pre slanja
+                    // Enkripcija zahteva
                     string encryptedRequest = Common.Enkriptor.Encrypt(zahtev, key);
-
                     byte[] messageBytes = Encoding.UTF8.GetBytes(encryptedRequest);
-                    stream.Write(messageBytes, 0, messageBytes.Length);
+
+                    // Slanje zahteva
+                    clientSocket.Send(messageBytes);
 
                     byte[] buffer = new byte[4096];
                     StringBuilder odgovorBuilder = new StringBuilder();
 
                     int bytesRead;
-                    while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+                    while ((bytesRead = clientSocket.Receive(buffer)) > 0)
                     {
                         string deo = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                         odgovorBuilder.Append(deo);
-
-                        if (deo.Contains("<END>")) // kraj poruke
+                        if (deo.Contains("<END>"))
                             break;
                     }
 
                     string odgovorEncrypted = odgovorBuilder.ToString().Replace("<END>", "").Trim();
-
-                    // Dekripcija odgovora
                     string odgovor = Common.Enkriptor.Decrypt(odgovorEncrypted, key);
 
                     Console.WriteLine("\n--- Odgovor servera ---");
                     Console.WriteLine(odgovor);
                     Console.WriteLine("------------------------\n");
 
-                    tcpClient.Close();
+                    clientSocket.Shutdown(SocketShutdown.Both);
+                    clientSocket.Close();
                 }
             }
             catch (Exception ex)

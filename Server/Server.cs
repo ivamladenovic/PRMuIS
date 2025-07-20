@@ -1,10 +1,10 @@
 ﻿using Common;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace Server
 {
@@ -15,6 +15,7 @@ namespace Server
         private static double maxBudzet = 10000;
         private static List<Transakcija> transakcije = new List<Transakcija>();
         private static readonly string sifra = "tajna123";
+
         static void Main(string[] args)
         {
             try
@@ -22,52 +23,67 @@ namespace Server
                 // Slanje UDP poruke filijali pre pokretanja TCP listener-a
                 PosaljiStartFilijali("127.0.0.1", 7777);
 
-                TcpListener tcpListener = new TcpListener(IPAddress.Any, 8888);
-                tcpListener.Start();
+                IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, 8888);
+                Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+                listener.Bind(localEndPoint);
+                listener.Listen(10);
+
                 Console.WriteLine("Server pokrenut na portu 8888 (TCP).");
 
                 while (true)
                 {
-                    TcpClient client = tcpListener.AcceptTcpClient();
+                    Socket clientSocket = listener.Accept();
                     Console.WriteLine("Filijala se povezala.");
 
-                    NetworkStream stream = client.GetStream();
-                    byte[] buffer = new byte[1024];
-                    int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                    string encryptedRequest = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-                    string request;
-                    try
-                    {
-                        request = Enkriptor.Decrypt(encryptedRequest,sifra);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Greška prilikom dešifrovanja zahteva: {ex.Message}");
-                        client.Close();
-                        continue;
-                    }
-
-                    string response = ObradiZahtev(request);
-                    if (!response.EndsWith("<END>"))
-                    {
-                        response += "<END>";
-                    }
-
-
-                    string encryptedResponse = Enkriptor.Encrypt(response, sifra);
-                    byte[] responseBytes = Encoding.UTF8.GetBytes(encryptedResponse);
-
-                    stream.Write(responseBytes, 0, responseBytes.Length);
-                    stream.Flush();
-                    System.Threading.Thread.Sleep(50);
-
-                    client.Close();
+                    // Obrada zahteva u zasebnoj niti da ne blokira server
+                    ThreadPool.QueueUserWorkItem(ObradiKlijenta, clientSocket);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Greška na serveru: {ex.Message}");
+            }
+        }
+
+        private static void ObradiKlijenta(object obj)
+        {
+            Socket clientSocket = (Socket)obj;
+            try
+            {
+                byte[] buffer = new byte[4096];
+                int bytesRead = clientSocket.Receive(buffer);
+                string encryptedRequest = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                string request;
+                try
+                {
+                    request = Enkriptor.Decrypt(encryptedRequest, sifra);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Greška prilikom dešifrovanja zahteva: {ex.Message}");
+                    clientSocket.Shutdown(SocketShutdown.Both);
+                    clientSocket.Close();
+                    return;
+                }
+
+                string response = ObradiZahtev(request);
+                if (!response.EndsWith("<END>"))
+                {
+                    response += "<END>";
+                }
+
+                string encryptedResponse = Enkriptor.Encrypt(response, sifra);
+                byte[] responseBytes = Encoding.UTF8.GetBytes(encryptedResponse);
+
+                clientSocket.Send(responseBytes);
+                clientSocket.Shutdown(SocketShutdown.Both);
+                clientSocket.Close();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Greška prilikom obrade klijenta: {ex.Message}");
             }
         }
 
@@ -101,8 +117,7 @@ namespace Server
                 return "Greška: Nepoznata akcija.";
         }
 
-
-private static string Transfer(string request)
+        private static string Transfer(string request)
         {
             // FORMAT: TRANSFER|lozinka_posiljaoca|lozinka_primaoca|iznos
             string[] delovi = request.Split('|');
@@ -182,11 +197,11 @@ private static string Transfer(string request)
 
             foreach (var t in transakcije)
             {
-                if (t.TipTransakcije == "TRANSFER" && t.OdKoga == korisnik.Ime + " " + korisnik.Prezime)
+                if (t.TipTransakcije == "TRANSFER" && t.OdKoga == punoIme)
                 {
                     sb.AppendLine($"[TRANSFER-POSLAT] {t.OdKoga} > {t.KaKome}, Iznos: {t.Iznos} din, Datum: {t.Datum}");
                 }
-                else if (t.TipTransakcije == "TRANSFER" && t.KaKome == korisnik.Ime + " " + korisnik.Prezime)
+                else if (t.TipTransakcije == "TRANSFER" && t.KaKome == punoIme)
                 {
                     sb.AppendLine($"[TRANSFER-PRIMLJEN] {t.OdKoga} > {t.KaKome}, Iznos: {t.Iznos} din, Datum: {t.Datum}");
                 }
@@ -203,15 +218,13 @@ private static string Transfer(string request)
                 }
             }
 
-            return sb.ToString();
+            return sb.ToString() + "<END>";
         }
-
-
 
         private static string Registracija(string request)
         {
             string[] delovi = request.Split('|');
-            if (delovi.Length == 5) 
+            if (delovi.Length == 5)
             {
                 string ime = delovi[1];
                 string prezime = delovi[2];
@@ -237,10 +250,11 @@ private static string Transfer(string request)
                 return "Greška: Nevalidni podaci za registraciju.";
             }
         }
+
         private static string Prijava(string request)
         {
             string[] delovi = request.Split('|');
-            if (delovi.Length == 3) 
+            if (delovi.Length == 3)
             {
                 string ime = delovi[1];
                 string lozinka = delovi[2];
@@ -263,8 +277,6 @@ private static string Transfer(string request)
             }
         }
 
-
-
         private static string PregledStanja(string request)
         {
             string[] delovi = request.Split('|');
@@ -275,83 +287,90 @@ private static string Transfer(string request)
 
                 if (korisnik != null)
                 {
-                    return $"Stanje na računu korisnika {korisnik.Ime} {korisnik.Prezime}: {korisnik.StanjeNaRačunu} dinara.";
+                    return $"Stanje na računu korisnika {korisnik.Ime} {korisnik.Prezime}: {korisnik.StanjeNaRačunu:F2} dinara.";
                 }
                 else
                 {
-                    return "Greška: Pogrešna lozinka.";
+                    return "Greška: Korisnik nije pronađen.";
                 }
             }
             else
             {
-                return "Greška: Nevalidni podaci za pregled stanja.";
+                return "Greška: Nevalidan zahtev za stanje.";
             }
         }
 
         private static string Transakcija(string request)
         {
+            // FORMAT: TRANSAKCIJA|TIP|IZNOS|LOZINKA
             string[] delovi = request.Split('|');
-            if (delovi.Length == 4) 
+            if (delovi.Length != 4)
             {
-                string tip = delovi[1]; 
-                if (!double.TryParse(delovi[2], out double iznos) || iznos <= 0)
-                {
-                    return "Greška: Nevalidan iznos transakcije.";
-                }
+                return "Greška: Nevalidni podaci za transakciju.";
+            }
 
-                string lozinka = delovi[3];
-                Korisnik korisnik = korisnici.Find(k => k.Lozinka == lozinka);
+            string tip = delovi[1];
+            if (!double.TryParse(delovi[2], out double iznos) || iznos <= 0)
+            {
+                return "Greška: Nevalidan iznos transakcije.";
+            }
+            string lozinka = delovi[3];
 
-                if (korisnik == null)
-                {
-                    return "Greška: Pogrešna lozinka.";
-                }
+            Korisnik korisnik = korisnici.Find(k => k.Lozinka == lozinka);
+            if (korisnik == null)
+                return "Greška: Korisnik nije pronađen.";
 
-                if (tip == "UPLATA")
-                {
-                    korisnik.StanjeNaRačunu += iznos;
-                    maxBudzet += iznos;
-                }
-                else if (tip == "ISPLATA")
-                {
-                    if (korisnik.StanjeNaRačunu < iznos)
-                    {
-                        return "Greška: Nedovoljno sredstava na računu.";
-                    }else if(korisnik.LimitZaIsplatu < iznos)
-                    {
-                        return "Greška: Prekoracili ste limit za isplatu.";
-                    }
-                    korisnik.StanjeNaRačunu -= iznos;
-                    maxBudzet -= iznos;
-                    Console.WriteLine($"Maksimalni budžet je sada: {maxBudzet}");
+            if (tip == "UPLATA")
+            {
+                if (iznos > maxBudzet)
+                    return "Greška: Nema dovoljno sredstava u ukupnom budžetu filijale.";
 
-                }
-                else
-                {
-                    return "Greška: Nepoznat tip transakcije.";
-                }
+                korisnik.StanjeNaRačunu += iznos;
+                maxBudzet -= iznos;
 
-                Transakcija transakcija = new Transakcija(
+                transakcije.Add(new Transakcija(
+                                    Guid.NewGuid().ToString(),
+                                    tip,
+                                    iznos,
+                                    DateTime.Now,
+                                    korisnik.Ime + " " + korisnik.Prezime,
+                                    korisnik.Ime + " " + korisnik.Prezime,
+                                    korisnik.Lozinka
+                                ));
+                return $"Uplata uspešna. Novo stanje na računu: {korisnik.StanjeNaRačunu:F2} dinara.";
+            }
+            else if (tip == "ISPLATA")
+            {
+                if (korisnik.StanjeNaRačunu < iznos)
+                    return "Greška: Nema dovoljno sredstava na računu korisnika.";
+
+                if (korisnik.LimitZaIsplatu < iznos)
+                    return "Greška: Prekoračen limit za isplatu.";
+
+                korisnik.StanjeNaRačunu -= iznos;
+                maxBudzet += iznos;
+
+                transakcije.Add(new Transakcija(
                     Guid.NewGuid().ToString(),
                     tip,
                     iznos,
                     DateTime.Now,
-                    vlasnikLozinka: korisnik.Lozinka
-                );
-                transakcije.Add(transakcija);
-                Console.WriteLine($"Evidentirana transakcija: {transakcija}");
-                return $"{tip} uspešna! Novo stanje: {korisnik.StanjeNaRačunu} dinara.";
+                    korisnik.Ime + " " + korisnik.Prezime,
+                    korisnik.Ime + " " + korisnik.Prezime,
+                    korisnik.Lozinka  
+                ));
+
+                return $"Isplata uspešna. Novo stanje na računu: {korisnik.StanjeNaRačunu:F2} dinara.";
             }
             else
             {
-                return "Greška: Nevalidni podaci za transakciju.";
+                return "Greška: Nepoznat tip transakcije.";
             }
         }
 
-
         private static string PosaljiteMaksimalniBudzet()
-        {            
-            return $"MAKS_BUDZET|{maxBudzet}";
+        {
+            return $"Maksimalni budžet: {maxBudzet:F2} dinara.";
         }
     }
 }

@@ -64,18 +64,18 @@ namespace Filijala
                     while (!int.TryParse(Console.ReadLine(), out port)) ;
                 }
 
-                TcpListener tcpListener = new TcpListener(IPAddress.Any, port);
-                tcpListener.Start();
-                Console.WriteLine($"Filijala pokrenuta na portu {port} (TCP).");
+                Socket listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                listenerSocket.Bind(new IPEndPoint(IPAddress.Any, port));
+                listenerSocket.Listen(10);
+                Console.WriteLine($"Filijala pokrenuta na portu {port} (TCP).\n");
 
                 while (true)
                 {
-                    TcpClient client = tcpListener.AcceptTcpClient();
+                    Socket klijentSocket = listenerSocket.Accept();
                     Console.WriteLine("Klijent se povezao.");
 
-                    NetworkStream stream = client.GetStream();
                     byte[] buffer = new byte[4096];
-                    int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    int bytesRead = klijentSocket.Receive(buffer);
 
                     string encryptedRequest = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                     Console.WriteLine($"Primljen ENKRIPTOVAN zahtev od klijenta: {encryptedRequest}");
@@ -89,7 +89,7 @@ namespace Filijala
                     catch (Exception ex)
                     {
                         Console.WriteLine("Neuspela dekripcija zahteva: " + ex.Message);
-                        client.Close();
+                        klijentSocket.Close();
                         continue;
                     }
 
@@ -106,15 +106,16 @@ namespace Filijala
                         response = "Nepoznat zahtev.";
                     }
 
-                    response += "<END>"; // Za detekciju kraja odgovora na klijentskoj strani
+                    response += "<END>";
                     Console.WriteLine($"Originalan odgovor za klijenta: {response}");
 
                     string encryptedResponse = Enkriptor.Encrypt(response, sifra);
                     Console.WriteLine($"ENKRIPTOVAN odgovor ka klijentu: {encryptedResponse}");
 
                     byte[] responseBytes = Encoding.UTF8.GetBytes(encryptedResponse);
-                    stream.Write(responseBytes, 0, responseBytes.Length);
-                    client.Close();
+                    klijentSocket.Send(responseBytes);
+                    klijentSocket.Shutdown(SocketShutdown.Both);
+                    klijentSocket.Close();
                 }
             }
             catch (Exception ex)
@@ -131,22 +132,24 @@ namespace Filijala
                 string encryptedRequest = Enkriptor.Encrypt(request, sifra);
                 Console.WriteLine($"ENKRIPTOVAN zahtev ka serveru: {encryptedRequest}");
 
-                TcpClient serverClient = new TcpClient("127.0.0.1", 8888);
-                NetworkStream serverStream = serverClient.GetStream();
+                Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                serverSocket.Connect("127.0.0.1", 8888);
 
                 byte[] requestBytes = Encoding.UTF8.GetBytes(encryptedRequest);
-                serverStream.Write(requestBytes, 0, requestBytes.Length);
+                serverSocket.Send(requestBytes);
 
                 byte[] responseBytes = new byte[4096];
-                int bytesRead = serverStream.Read(responseBytes, 0, responseBytes.Length);
-                string encryptedResponse = Encoding.UTF8.GetString(responseBytes, 0, bytesRead);
+                int bytesRead = serverSocket.Receive(responseBytes);
 
+                string encryptedResponse = Encoding.UTF8.GetString(responseBytes, 0, bytesRead);
                 Console.WriteLine($"Primljen ENKRIPTOVAN odgovor od servera: {encryptedResponse}");
 
                 string response = Enkriptor.Decrypt(encryptedResponse, sifra);
                 Console.WriteLine($"Dekriptovan odgovor od servera: {response}");
 
-                serverClient.Close();
+                serverSocket.Shutdown(SocketShutdown.Both);
+                serverSocket.Close();
+
                 return response;
             }
             catch (Exception ex)
