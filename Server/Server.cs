@@ -14,7 +14,7 @@ namespace Server
         private static Dictionary<string, Korisnik> aktivniKorisnici = new Dictionary<string, Korisnik>();
         private static double maxBudzet = 10000;
         private static List<Transakcija> transakcije = new List<Transakcija>();
-        private static readonly string sifra = "tajna123";
+        private static readonly string sifra = "iva12";
 
         static void Main(string[] args)
         {

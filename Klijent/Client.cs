@@ -18,7 +18,7 @@ namespace Klijent
                 int port;
                 while (!int.TryParse(Console.ReadLine(), out port)) ;
 
-                string key = "tajna123";
+                string key = "iva12";
 
                 while (true)
                 {

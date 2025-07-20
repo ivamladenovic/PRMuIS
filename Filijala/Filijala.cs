@@ -10,7 +10,7 @@ namespace Filijala
     internal class Filijala
     {
         private static double maksimalniBudzet = 0;
-        private static readonly string sifra = "tajna123"; // Tajna šifra za enkripciju
+        private static readonly string sifra = "iva12"; // Tajna šifra za enkripciju
 
         static void Main(string[] args)
         {
@@ -18,23 +18,37 @@ namespace Filijala
             {
                 // --- 1. UDP deo: cekanje START poruke sa servera ---
                 int udpPort = 7777;
-                using (UdpClient udpClient = new UdpClient(udpPort))
-                {
-                    Console.WriteLine($"Čekam UDP START poruku na portu {udpPort}...");
-                    IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
-                    byte[] receivedBytes = udpClient.Receive(ref remoteEP);
-                    string message = Encoding.UTF8.GetString(receivedBytes);
 
-                    if (message == "START")
-                    {
-                        Console.WriteLine($"Primljena START poruka od servera ({remoteEP.Address}).");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Nepoznata UDP poruka, izlazim.");
-                        return;
-                    }
+                // Kreiramo UDP socket
+                Socket udpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+
+                // Bindujemo socket na port i sve interfejse
+                udpSocket.Bind(new IPEndPoint(IPAddress.Any, udpPort));
+
+                Console.WriteLine($"Čekam UDP START poruku na portu {udpPort}...");
+
+                // Pripremimo buffer i endpoint za prijem podataka
+                byte[] buffer = new byte[1024];
+                EndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
+
+                // Primamo poruku sa bilo kog izvora
+                int bytesRead = udpSocket.ReceiveFrom(buffer, ref remoteEP);
+
+                // Pretvaramo primljene bajtove u string
+                string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                if (message == "START")
+                {
+                    Console.WriteLine($"Primljena START poruka od servera ({remoteEP.ToString()}).");
                 }
+                else
+                {
+                    Console.WriteLine("Nepoznata UDP poruka, izlazim.");
+                    udpSocket.Close();
+                    return;
+                }
+
+                udpSocket.Close();
 
                 // --- 2. TCP inicijalizacija filijale: salji INIT serveru ---
                 string initResponse = ProslediZahtevServeru("INIT");
@@ -74,10 +88,10 @@ namespace Filijala
                     Socket klijentSocket = listenerSocket.Accept();
                     Console.WriteLine("Klijent se povezao.");
 
-                    byte[] buffer = new byte[4096];
-                    int bytesRead = klijentSocket.Receive(buffer);
+                    byte[] recvBuffer = new byte[4096];
+                    int bytesReadClient = klijentSocket.Receive(recvBuffer);
 
-                    string encryptedRequest = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    string encryptedRequest = Encoding.UTF8.GetString(recvBuffer, 0, bytesReadClient);
                     Console.WriteLine($"Primljen ENKRIPTOVAN zahtev od klijenta: {encryptedRequest}");
 
                     string request;
@@ -106,7 +120,6 @@ namespace Filijala
                         response = "Nepoznat zahtev.";
                     }
 
-                    //response += "<END>";
                     Console.WriteLine($"Originalan odgovor za klijenta: {response}");
 
                     string encryptedResponse = Enkriptor.Encrypt(response, sifra);
