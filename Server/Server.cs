@@ -10,16 +10,19 @@ namespace Server
 {
     internal class Server
     {
-        private static List<Korisnik> korisnici = new List<Korisnik>(); 
-        private static Dictionary<string, Korisnik> aktivniKorisnici = new Dictionary<string, Korisnik>(); 
+        private static List<Korisnik> korisnici = new List<Korisnik>();
+        private static Dictionary<string, Korisnik> aktivniKorisnici = new Dictionary<string, Korisnik>();
         private static double maxBudzet = 10000;
         private static List<Transakcija> transakcije = new List<Transakcija>();
-
+        private static readonly string sifra = "tajna123";
         static void Main(string[] args)
         {
             try
             {
-                TcpListener tcpListener = new TcpListener(IPAddress.Any, 8888); 
+                // Slanje UDP poruke filijali pre pokretanja TCP listener-a
+                PosaljiStartFilijali("127.0.0.1", 7777);
+
+                TcpListener tcpListener = new TcpListener(IPAddress.Any, 8888);
                 tcpListener.Start();
                 Console.WriteLine("Server pokrenut na portu 8888 (TCP).");
 
@@ -31,16 +34,33 @@ namespace Server
                     NetworkStream stream = client.GetStream();
                     byte[] buffer = new byte[1024];
                     int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                    string request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    string encryptedRequest = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                    string request;
+                    try
+                    {
+                        request = Enkriptor.Decrypt(encryptedRequest,sifra);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Greška prilikom dešifrovanja zahteva: {ex.Message}");
+                        client.Close();
+                        continue;
+                    }
 
                     string response = ObradiZahtev(request);
-                    response += "<END>"; // 🔚 dodajemo oznaku kraja poruke
-                    byte[] responseBytes = Encoding.UTF8.GetBytes(response);
-                    //stream.Write(responseBytes, 0, responseBytes.Length);
+                    if (!response.EndsWith("<END>"))
+                    {
+                        response += "<END>";
+                    }
+
+
+                    string encryptedResponse = Enkriptor.Encrypt(response, sifra);
+                    byte[] responseBytes = Encoding.UTF8.GetBytes(encryptedResponse);
+
                     stream.Write(responseBytes, 0, responseBytes.Length);
-                    stream.Flush(); // 🟢 osigurava da svi podaci odu
-                    System.Threading.Thread.Sleep(50); // 🟢 dajemo vremena da klijent pročita (može i 100ms ako treba)
-                    //client.Close(); // tek tada zatvaramo konekciju
+                    stream.Flush();
+                    System.Threading.Thread.Sleep(50);
 
                     client.Close();
                 }
@@ -51,43 +71,38 @@ namespace Server
             }
         }
 
+        private static void PosaljiStartFilijali(string filijalaIp, int udpPort)
+        {
+            using (UdpClient udpClient = new UdpClient())
+            {
+                byte[] poruka = Encoding.UTF8.GetBytes("START");
+                udpClient.Send(poruka, poruka.Length, filijalaIp, udpPort);
+                Console.WriteLine($"Poslata UDP poruka 'START' filijali {filijalaIp}:{udpPort}");
+            }
+        }
+
         private static string ObradiZahtev(string request)
         {
             if (request.StartsWith("INIT"))
-            {
                 return PosaljiteMaksimalniBudzet();
-            }
             else if (request.StartsWith("REGISTRACIJA"))
-            {
                 return Registracija(request);
-            }
             else if (request.StartsWith("PRIJAVA"))
-            {
                 return Prijava(request);
-            }
             else if (request.StartsWith("STANJE"))
-            {
                 return PregledStanja(request);
-            }
             else if (request.StartsWith("TRANSAKCIJA"))
-            {
                 return Transakcija(request);
-            }
             else if (request.StartsWith("TRANSFER"))
-            {
                 return Transfer(request);
-            }
             else if (request.StartsWith("ISTORIJA"))
-            {
                 return VratiIstorijuTransakcija(request);
-            }
-
             else
-            {
                 return "Greška: Nepoznata akcija.";
-            }
         }
-        private static string Transfer(string request)
+
+
+private static string Transfer(string request)
         {
             // FORMAT: TRANSFER|lozinka_posiljaoca|lozinka_primaoca|iznos
             string[] delovi = request.Split('|');
@@ -188,7 +203,7 @@ namespace Server
                 }
             }
 
-            return sb.ToString() + "<END>";
+            return sb.ToString();
         }
 
 
