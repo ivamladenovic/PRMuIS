@@ -69,9 +69,9 @@ namespace Server
                 }
 
                 string response = ObradiZahtev(request);
-                if (!response.EndsWith("<END>"))
+                if (!response.EndsWith("!!"))
                 {
-                    response += "<END>";
+                    response += "!!";
                 }
 
                 string encryptedResponse = Enkriptor.Encrypt(response, sifra);
@@ -182,13 +182,13 @@ namespace Server
             // Format: ISTORIJA|lozinka
             string[] delovi = request.Split('|');
             if (delovi.Length != 2)
-                return "Greška: Nevalidan zahtev za istoriju.<END>";
+                return "Greška: Nevalidan zahtev za istoriju.";
 
             string lozinka = delovi[1];
             Korisnik korisnik = korisnici.Find(k => k.Lozinka == lozinka);
 
             if (korisnik == null)
-                return "Greška: Korisnik nije pronađen.<END>";
+                return "Greška: Korisnik nije pronađen.";
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"Transakcije za korisnika {korisnik.Ime} {korisnik.Prezime}:");
@@ -218,7 +218,7 @@ namespace Server
                 }
             }
 
-            return sb.ToString() + "<END>";
+            return sb.ToString() + "!!";
         }
 
         private static string Registracija(string request)

@@ -143,11 +143,11 @@ namespace Klijent
                     {
                         string deo = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                         odgovorBuilder.Append(deo);
-                        if (deo.Contains("<END>"))
+                        if (deo.Contains("!!"))
                             break;
                     }
 
-                    string odgovorEncrypted = odgovorBuilder.ToString().Replace("<END>", "").Trim();
+                    string odgovorEncrypted = odgovorBuilder.ToString().Replace("!!", "").Trim();
                     string odgovor = Common.Enkriptor.Decrypt(odgovorEncrypted, key);
 
                     Console.WriteLine("\n--- Odgovor servera ---");

@@ -106,7 +106,7 @@ namespace Filijala
                         response = "Nepoznat zahtev.";
                     }
 
-                    response += "<END>";
+                    //response += "<END>";
                     Console.WriteLine($"Originalan odgovor za klijenta: {response}");
 
                     string encryptedResponse = Enkriptor.Encrypt(response, sifra);
