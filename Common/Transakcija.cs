@@ -11,14 +11,19 @@ namespace Common
         public string TransakcioniId { get; set; }  
         public string TipTransakcije { get; set; } 
         public double Iznos { get; set; }          
-        public DateTime Datum { get; set; }        
-
-        public Transakcija(string transakcioniId, string tipTransakcije, double iznos, DateTime datum)
+        public DateTime Datum { get; set; }
+        public string OdKoga { get; set; }
+        public string KaKome { get; set; }
+        public string VlasnikLozinka { get; set; } // 🆕 Dodato za UPLATA/ISPLATA
+        public Transakcija(string transakcioniId, string tipTransakcije, double iznos, DateTime datum, string odKoga = "", string kaKome = "", string vlasnikLozinka = "")
         {
             TransakcioniId = transakcioniId;
             TipTransakcije = tipTransakcije;
             Iznos = iznos;
             Datum = datum;
+            OdKoga = odKoga;
+            KaKome = kaKome;
+            VlasnikLozinka = vlasnikLozinka;
         }
 
         public override string ToString()

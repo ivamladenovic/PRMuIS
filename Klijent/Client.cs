@@ -11,7 +11,10 @@ namespace Klijent
             try
             {
                 string serverAddress = "127.0.0.1";
-                int port = 8889;
+                Console.Write("Unesite port filijale na koju želite da se povežete (npr. 8889, 8890...): ");
+                int port;
+                while (!int.TryParse(Console.ReadLine(), out port)) ;
+
 
                 while (true)
                 {

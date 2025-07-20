@@ -10,9 +10,20 @@ namespace Filijala
         {
             try
             {
-                TcpListener tcpListener = new TcpListener(System.Net.IPAddress.Any, 8889); 
+                int port = 8889;
+                if (args.Length > 0 && int.TryParse(args[0], out int uneseniPort))
+                {
+                    port = uneseniPort;
+                }
+                else
+                {
+                    Console.Write("Unesite port na kojem želite da pokrenete filijalu (npr. 8890): ");
+                    while (!int.TryParse(Console.ReadLine(), out port)) ;
+                }
+
+                TcpListener tcpListener = new TcpListener(System.Net.IPAddress.Any, port);
                 tcpListener.Start();
-                Console.WriteLine("Filijala pokrenuta na portu 8889 (TCP).");
+                Console.WriteLine($"Filijala pokrenuta na portu {port} (TCP).");
 
                 while (true)
                 {
@@ -25,31 +36,11 @@ namespace Filijala
                     string request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                     string response = string.Empty;
-                    string initZahtev = "INIT";
-                    response = ProslediZahtevServeru(initZahtev);
+                    response = ProslediZahtevServeru("INIT"); // inicijalno možeš preskočiti
 
-                    if (request.StartsWith("REGISTRACIJA"))
-                    {
-                        response = ProslediZahtevServeru(request);
-
-                    }
-                    else if (request.StartsWith("PRIJAVA"))
-                    {
-                        response = ProslediZahtevServeru(request);
-                    }
-                    else if (request.StartsWith("STANJE"))
-                    {
-                        response = ProslediZahtevServeru(request);
-                    }
-                    else if (request.StartsWith("TRANSAKCIJA"))
-                    {
-                        response = ProslediZahtevServeru(request);
-                    }
-                    else if (request.StartsWith("TRANSFER"))
-                    {
-                        response = ProslediZahtevServeru(request);
-                    }
-                    else if (request.StartsWith("ISTORIJA"))
+                    if (request.StartsWith("REGISTRACIJA") || request.StartsWith("PRIJAVA") ||
+                        request.StartsWith("STANJE") || request.StartsWith("TRANSAKCIJA") ||
+                        request.StartsWith("TRANSFER") || request.StartsWith("ISTORIJA"))
                     {
                         response = ProslediZahtevServeru(request);
                     }
@@ -58,10 +49,8 @@ namespace Filijala
                         response = "Nepoznat zahtev.";
                     }
 
-
                     byte[] responseBytes = Encoding.UTF8.GetBytes(response);
                     stream.Write(responseBytes, 0, responseBytes.Length);
-
                     client.Close();
                 }
             }
@@ -70,6 +59,7 @@ namespace Filijala
                 Console.WriteLine($"Greška na filijali: {ex.Message}");
             }
         }
+
 
         private static string ProslediZahtevServeru(string request)
         {

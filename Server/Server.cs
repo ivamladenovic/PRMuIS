@@ -117,14 +117,12 @@ namespace Server
             if (primalac == null)
                 return "Greška: Pogrešna lozinka primaoca.";
 
-            // Provera sredstava i limita pošiljaoca
             if (posiljalac.StanjeNaRačunu < iznos)
                 return "Greška: Pošiljalac nema dovoljno sredstava.";
 
             if (posiljalac.LimitZaIsplatu < iznos)
                 return "Greška: Pošiljalac je prekoračio limit za isplatu.";
 
-            // Provera da li ima dovoljno ukupnog budžeta u sistemu
             if (maxBudzet < iznos)
                 return $"Greška: Nema dovoljno sredstava u ukupnom budžetu filijale ({maxBudzet} dinara).";
 
@@ -133,12 +131,20 @@ namespace Server
             primalac.StanjeNaRačunu += iznos;
             maxBudzet -= iznos;
 
-            // Evidencija transakcije
-            Transakcija t = new Transakcija(Guid.NewGuid().ToString(), "TRANSFER", iznos, DateTime.Now);
-            transakcije.Add(t);
-            Console.WriteLine($"Evidentiran transfer: {t} od {posiljalac.Ime} ka {primalac.Ime}");
+            // Evidencija transfera sa imenima
+            Transakcija t = new Transakcija(
+                Guid.NewGuid().ToString(),
+                "TRANSFER",
+                iznos,
+                DateTime.Now,
+                posiljalac.Ime + " " + posiljalac.Prezime,
+                primalac.Ime + " " + primalac.Prezime
+            );
 
-            return $"Transfer uspešan! Novo stanje pošiljaoca: {posiljalac.StanjeNaRačunu} dinara, primaoca: {primalac.StanjeNaRačunu} dinara.";
+            transakcije.Add(t);
+            Console.WriteLine($"Evidentiran transfer: {t.OdKoga} > {t.KaKome}, {t.Iznos} din");
+
+            return $"Transfer uspešan! Novo stanje pošiljaoca: {posiljalac.StanjeNaRačunu:F2} dinara, primaoca: {primalac.StanjeNaRačunu:F2} dinara.";
         }
 
         private static string VratiIstorijuTransakcija(string request)
@@ -157,20 +163,34 @@ namespace Server
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"Transakcije za korisnika {korisnik.Ime} {korisnik.Prezime}:");
 
+            string punoIme = korisnik.Ime + " " + korisnik.Prezime;
+
             foreach (var t in transakcije)
             {
-                if (t.TipTransakcije == "TRANSFER")
+                if (t.TipTransakcije == "TRANSFER" && t.OdKoga == korisnik.Ime + " " + korisnik.Prezime)
                 {
-                    sb.AppendLine($"[TRANSFER] Iznos: {t.Iznos}, Datum: {t.Datum}");
+                    sb.AppendLine($"[TRANSFER-POSLAT] {t.OdKoga} > {t.KaKome}, Iznos: {t.Iznos} din, Datum: {t.Datum}");
                 }
-                else
+                else if (t.TipTransakcije == "TRANSFER" && t.KaKome == korisnik.Ime + " " + korisnik.Prezime)
                 {
-                    sb.AppendLine($"[{t.TipTransakcije}] Iznos: {t.Iznos}, Datum: {t.Datum}");
+                    sb.AppendLine($"[TRANSFER-PRIMLJEN] {t.OdKoga} > {t.KaKome}, Iznos: {t.Iznos} din, Datum: {t.Datum}");
+                }
+                else if (t.VlasnikLozinka == korisnik.Lozinka)
+                {
+                    if (t.TipTransakcije == "UPLATA")
+                    {
+                        sb.AppendLine($"[UPLATA]  +{t.Iznos} din, Datum: {t.Datum}");
+                    }
+                    else if (t.TipTransakcije == "ISPLATA")
+                    {
+                        sb.AppendLine($"[ISPLATA] -{t.Iznos} din, Datum: {t.Datum}");
+                    }
                 }
             }
 
             return sb.ToString() + "<END>";
         }
+
 
 
         private static string Registracija(string request)
@@ -296,7 +316,14 @@ namespace Server
                     return "Greška: Nepoznat tip transakcije.";
                 }
 
-                Transakcija transakcija = new Transakcija(Guid.NewGuid().ToString(), tip, iznos, DateTime.Now);
+                Transakcija transakcija = new Transakcija(
+                    Guid.NewGuid().ToString(),
+                    tip,
+                    iznos,
+                    DateTime.Now,
+                    vlasnikLozinka: korisnik.Lozinka
+                );
+                transakcije.Add(transakcija);
                 Console.WriteLine($"Evidentirana transakcija: {transakcija}");
                 return $"{tip} uspešna! Novo stanje: {korisnik.StanjeNaRačunu} dinara.";
             }
