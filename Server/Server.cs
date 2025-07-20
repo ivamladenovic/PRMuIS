@@ -1,6 +1,7 @@
 ﻿using Common;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -11,7 +12,8 @@ namespace Server
     {
         private static List<Korisnik> korisnici = new List<Korisnik>(); 
         private static Dictionary<string, Korisnik> aktivniKorisnici = new Dictionary<string, Korisnik>(); 
-        private static double maxBudzet = 10000; 
+        private static double maxBudzet = 10000;
+        private static List<Transakcija> transakcije = new List<Transakcija>();
 
         static void Main(string[] args)
         {
@@ -32,8 +34,13 @@ namespace Server
                     string request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                     string response = ObradiZahtev(request);
+                    response += "<END>"; // 🔚 dodajemo oznaku kraja poruke
                     byte[] responseBytes = Encoding.UTF8.GetBytes(response);
+                    //stream.Write(responseBytes, 0, responseBytes.Length);
                     stream.Write(responseBytes, 0, responseBytes.Length);
+                    stream.Flush(); // 🟢 osigurava da svi podaci odu
+                    System.Threading.Thread.Sleep(50); // 🟢 dajemo vremena da klijent pročita (može i 100ms ako treba)
+                    //client.Close(); // tek tada zatvaramo konekciju
 
                     client.Close();
                 }
@@ -48,8 +55,7 @@ namespace Server
         {
             if (request.StartsWith("INIT"))
             {
-                string response = PosaljiteMaksimalniBudzet();
-                return response;
+                return PosaljiteMaksimalniBudzet();
             }
             else if (request.StartsWith("REGISTRACIJA"))
             {
@@ -67,11 +73,105 @@ namespace Server
             {
                 return Transakcija(request);
             }
+            else if (request.StartsWith("TRANSFER"))
+            {
+                return Transfer(request);
+            }
+            else if (request.StartsWith("ISTORIJA"))
+            {
+                return VratiIstorijuTransakcija(request);
+            }
+
             else
             {
                 return "Greška: Nepoznata akcija.";
             }
         }
+        private static string Transfer(string request)
+        {
+            // FORMAT: TRANSFER|lozinka_posiljaoca|lozinka_primaoca|iznos
+            string[] delovi = request.Split('|');
+            if (delovi.Length != 4)
+            {
+                return "Greška: Nevalidni podaci za transfer.";
+            }
+
+            string lozinkaPosiljaoca = delovi[1];
+            string lozinkaPrimaoca = delovi[2];
+            if (!double.TryParse(delovi[3], out double iznos))
+            {
+                return "Greška: Uneti iznos nije validan broj.";
+            }
+
+            if (iznos <= 0)
+            {
+                return "Greška: Iznos za transfer mora biti veći od nule.";
+            }
+
+            Korisnik posiljalac = korisnici.Find(k => k.Lozinka == lozinkaPosiljaoca);
+            Korisnik primalac = korisnici.Find(k => k.Lozinka == lozinkaPrimaoca);
+
+            if (posiljalac == null)
+                return "Greška: Pogrešna lozinka pošiljaoca.";
+
+            if (primalac == null)
+                return "Greška: Pogrešna lozinka primaoca.";
+
+            // Provera sredstava i limita pošiljaoca
+            if (posiljalac.StanjeNaRačunu < iznos)
+                return "Greška: Pošiljalac nema dovoljno sredstava.";
+
+            if (posiljalac.LimitZaIsplatu < iznos)
+                return "Greška: Pošiljalac je prekoračio limit za isplatu.";
+
+            // Provera da li ima dovoljno ukupnog budžeta u sistemu
+            if (maxBudzet < iznos)
+                return $"Greška: Nema dovoljno sredstava u ukupnom budžetu filijale ({maxBudzet} dinara).";
+
+            // Izvršavanje transfera
+            posiljalac.StanjeNaRačunu -= iznos;
+            primalac.StanjeNaRačunu += iznos;
+            maxBudzet -= iznos;
+
+            // Evidencija transakcije
+            Transakcija t = new Transakcija(Guid.NewGuid().ToString(), "TRANSFER", iznos, DateTime.Now);
+            transakcije.Add(t);
+            Console.WriteLine($"Evidentiran transfer: {t} od {posiljalac.Ime} ka {primalac.Ime}");
+
+            return $"Transfer uspešan! Novo stanje pošiljaoca: {posiljalac.StanjeNaRačunu} dinara, primaoca: {primalac.StanjeNaRačunu} dinara.";
+        }
+
+        private static string VratiIstorijuTransakcija(string request)
+        {
+            // Format: ISTORIJA|lozinka
+            string[] delovi = request.Split('|');
+            if (delovi.Length != 2)
+                return "Greška: Nevalidan zahtev za istoriju.<END>";
+
+            string lozinka = delovi[1];
+            Korisnik korisnik = korisnici.Find(k => k.Lozinka == lozinka);
+
+            if (korisnik == null)
+                return "Greška: Korisnik nije pronađen.<END>";
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"Transakcije za korisnika {korisnik.Ime} {korisnik.Prezime}:");
+
+            foreach (var t in transakcije)
+            {
+                if (t.TipTransakcije == "TRANSFER")
+                {
+                    sb.AppendLine($"[TRANSFER] Iznos: {t.Iznos}, Datum: {t.Datum}");
+                }
+                else
+                {
+                    sb.AppendLine($"[{t.TipTransakcije}] Iznos: {t.Iznos}, Datum: {t.Datum}");
+                }
+            }
+
+            return sb.ToString() + "<END>";
+        }
+
 
         private static string Registracija(string request)
         {

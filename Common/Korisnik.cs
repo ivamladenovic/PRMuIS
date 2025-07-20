@@ -11,7 +11,7 @@
 
         public Korisnik(string id, string ime, string prezime, double limitZaIsplatu, string lozinka)
         {
-            Id = Id;
+            Id = id;
             Ime = ime;
             Prezime = prezime;
             StanjeNaRačunu = 0;  

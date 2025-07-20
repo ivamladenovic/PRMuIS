@@ -32,7 +32,8 @@ namespace Filijala
                     {
                         response = ProslediZahtevServeru(request);
 
-                    }else if (request.StartsWith("PRIJAVA"))
+                    }
+                    else if (request.StartsWith("PRIJAVA"))
                     {
                         response = ProslediZahtevServeru(request);
                     }
@@ -44,14 +45,19 @@ namespace Filijala
                     {
                         response = ProslediZahtevServeru(request);
                     }
+                    else if (request.StartsWith("TRANSFER"))
+                    {
+                        response = ProslediZahtevServeru(request);
+                    }
+                    else if (request.StartsWith("ISTORIJA"))
+                    {
+                        response = ProslediZahtevServeru(request);
+                    }
                     else
                     {
                         response = "Nepoznat zahtev.";
                     }
 
-                    
-                       
-                    
 
                     byte[] responseBytes = Encoding.UTF8.GetBytes(response);
                     stream.Write(responseBytes, 0, responseBytes.Length);

@@ -20,10 +20,12 @@ namespace Klijent
                     Console.WriteLine("2. Prijava");
                     Console.WriteLine("3. Pregled stanja");
                     Console.WriteLine("4. Transakcija");
-                    Console.WriteLine("5. Izlaz");
+                    Console.WriteLine("5. Transfer sredstava");
+                    Console.WriteLine("6. Pregled istorije transakcija");
+                    Console.WriteLine("7. Izlaz");
                     string izbor = Console.ReadLine();
 
-                    if (izbor == "5") break;
+                    if (izbor == "7") break;
 
                     TcpClient tcpClient = new TcpClient(serverAddress, port);
                     NetworkStream stream = tcpClient.GetStream();
@@ -98,6 +100,29 @@ namespace Klijent
                             zahtev = $"TRANSAKCIJA|{tipTransakcije}|{iznos}|{lozinkaTransakcije}";
                             break;
 
+                        case "5":
+                            // Transfer sredstava - NOVO
+                            Console.Write("Unesite lozinku pošiljaoca: ");
+                            string lozinkaPosiljaoca = Console.ReadLine();
+
+                            Console.Write("Unesite lozinku primaoca: ");
+                            string lozinkaPrimaoca = Console.ReadLine();
+
+                            Console.Write("Unesite iznos za transfer: ");
+                            double iznosTransfer;
+                            while (!double.TryParse(Console.ReadLine(), out iznosTransfer) || iznosTransfer <= 0)
+                            {
+                                Console.Write("Pogrešan unos! Unesite validan iznos: ");
+                            }
+
+                            zahtev = $"TRANSFER|{lozinkaPosiljaoca}|{lozinkaPrimaoca}|{iznosTransfer}";
+                            break;
+                        case "6":
+                            Console.Write("Unesite lozinku: ");
+                            string lozinkaIstorije = Console.ReadLine();
+                            zahtev = $"ISTORIJA|{lozinkaIstorije}";
+                            break;
+
                         default:
                             Console.WriteLine("Nepoznata opcija.");
                             continue;
@@ -106,12 +131,28 @@ namespace Klijent
                     byte[] messageBytes = Encoding.UTF8.GetBytes(zahtev);
                     stream.Write(messageBytes, 0, messageBytes.Length);
 
-                    byte[] responseBuffer = new byte[1024];
-                    int bytesRead = stream.Read(responseBuffer, 0, responseBuffer.Length);
-                    string responseMessage = Encoding.UTF8.GetString(responseBuffer, 0, bytesRead);
-                    Console.WriteLine($"{responseMessage}");
+                    //byte[] responseBuffer = new byte[1024];
+                    //int bytesRead = stream.Read(responseBuffer, 0, responseBuffer.Length);
+                    //string responseMessage = Encoding.UTF8.GetString(responseBuffer, 0, bytesRead);
+                    //Console.WriteLine($"{responseMessage}");
+                    byte[] buffer = new byte[4096];
+                    StringBuilder odgovorBuilder = new StringBuilder();
 
-                    
+                    int bytesRead;
+                    while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        string deo = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                        odgovorBuilder.Append(deo);
+
+                        if (deo.Contains("<END>")) // 🟢 našli kraj poruke
+                            break;
+                    }
+
+                    string odgovor = odgovorBuilder.ToString().Replace("<END>", "").Trim();
+                    Console.WriteLine("\n--- Odgovor servera ---");
+                    Console.WriteLine(odgovor);
+                    Console.WriteLine("------------------------\n");
+
                     tcpClient.Close();
                 }
             }
